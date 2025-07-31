@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+option go_package="./;proto-bak;";
+
+service Greeter {
+  rpc GetStream (Request) returns (stream Response); //服务端流模式
+  rpc PutStream (stream Request) returns (Response); //客户端流模式
+  rpc AllStream (stream Request) returns (stream Response); //双向流模式
+}
+
+message Request {
+  string data = 1;
+}
+
+message Response {
+  string data = 1;
+}
