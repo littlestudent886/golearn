@@ -25,6 +25,7 @@ func ModelToResponse(user model.User) proto.UserInfoResponse {
 		// 没有默认值的变量可能是nil，不能之间给proto message赋值
 		Id:       user.ID,
 		Password: user.Password,
+		Mobile:   user.Mobile,
 		NickName: user.NickName,
 		Gender:   user.Gender,
 		Role:     int32(user.Role),

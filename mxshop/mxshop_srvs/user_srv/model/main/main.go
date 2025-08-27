@@ -7,7 +7,8 @@ import (
 	"fmt"
 	"github.com/anaskhan96/go-password-encoder"
 	"io"
-	"strings"
+	"mxshop_srvs/user_srv/global"
+	"mxshop_srvs/user_srv/model"
 )
 
 // 生成md5
@@ -56,15 +57,23 @@ func main() {
 	//fmt.Println(check) // true
 
 	// Using custom options
-	options := &password.Options{10, 100, 20, sha512.New}
-	salt, encodedPwd := password.Encode("generic password", options)
+	options := &password.Options{16, 100, 32, sha512.New}
+	salt, encodedPwd := password.Encode("admin123", options)
 	//fmt.Println(salt)
 	//fmt.Println(encodedPwd)
 	password1 := fmt.Sprintf("$pbkdf2-sha512$%s$%s", salt, encodedPwd)
 	fmt.Println(password1)
 	fmt.Println(len(password1))
-	passwordInfo := strings.Split(password1, "$")
-	fmt.Println(passwordInfo)
-	check := password.Verify("generic password", passwordInfo[2], passwordInfo[3], options)
-	fmt.Println(check) // true
+	//passwordInfo := strings.Split(password1, "$")
+	//fmt.Println(passwordInfo)
+	//check := password.Verify("generic password", passwordInfo[2], passwordInfo[3], options)
+	//fmt.Println(check) // true
+	for i := 0; i < 10; i++ {
+		user := model.User{
+			NickName: fmt.Sprintf("zzc%d", i),
+			Mobile:   fmt.Sprintf("1882568975%d", i),
+			Password: password1,
+		}
+		global.DB.Save(&user)
+	}
 }
