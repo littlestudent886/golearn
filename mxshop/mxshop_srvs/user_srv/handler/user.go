@@ -5,6 +5,9 @@ import (
 	"crypto/sha512"
 	"fmt"
 	"github.com/anaskhan96/go-password-encoder"
+	"google.golang.org/protobuf/types/known/emptypb"
+	"strings"
+	"time"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -117,4 +120,29 @@ func (s *UserServer) CreateUser(ctx context.Context, req *proto.CreateUserInfo) 
 	}
 	userInfoRsp := ModelToResponse(user)
 	return &userInfoRsp, nil
+}
+
+func (s *UserServer) UpdateUser(ctx context.Context, req *proto.UpdateUserInfo) (*emptypb.Empty, error) {
+	//个人中心更新用户
+	var user model.User
+	result := global.DB.First(&user, req.Id)
+	if result.RowsAffected == 0 {
+		return nil, status.Errorf(codes.NotFound, "用户不存在")
+	}
+	birthday := time.Unix(int64(req.Birthday), 0) //时间转换，重点在这里
+	user.NickName = req.NickName
+	user.Birthday = &birthday
+	user.Gender = req.Gender
+	result = global.DB.Save(&user)
+	if result.Error != nil {
+		return nil, status.Errorf(codes.Internal, result.Error.Error())
+	}
+	return &emptypb.Empty{}, nil
+}
+
+func (s *UserServer) CheckPassword(ctx context.Context, req *proto.PasswordCheckInfo) (*proto.CheckResponse, error) {
+	options := &password.Options{16, 100, 32, sha512.New}
+	passwordInfo := strings.Split(req.EncryptedPassword, "$")
+	check := password.Verify(req.Password, passwordInfo[2], passwordInfo[3], options)
+	return &proto.CheckResponse{Success: check}, nil
 }
