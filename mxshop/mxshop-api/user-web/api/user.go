@@ -2,14 +2,21 @@ package api
 
 import (
 	"fmt"
+	"github.com/go-playground/validator/v10"
+	"net/http"
+	"strconv"
+	"strings"
+	"time"
+	"user-web/forms"
+
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
-	"net/http"
-	"time"
+
+	"user-web/global"
 	"user-web/global/response"
 	"user-web/proto"
 )
@@ -43,12 +50,25 @@ func HandleGrpcErrorToHttp(err error, ctx *gin.Context) {
 			return
 		}
 	}
+}
+
+func HandleValidatorError(ctx *gin.Context, err error) {
+	//如何返回错误信息
+	errors, ok := err.(validator.ValidationErrors)
+	if !ok {
+		ctx.JSON(http.StatusOK, gin.H{
+			"msg": err.Error(),
+		})
+	}
+	ctx.JSON(http.StatusBadRequest, gin.H{
+		"error": removeTopStruct(errors.Translate(global.Trans)),
+	})
 
 }
 
 func GetUserList(ctx *gin.Context) {
-	ip := "127.0.0.1"
-	port := 50051
+	ip := global.ServerConfig.UserSrvInfo.Host
+	port := global.ServerConfig.UserSrvInfo.Port
 
 	// 连接用户grpc服务
 	conn, err := grpc.NewClient(fmt.Sprintf("%s:%d", ip, port), grpc.WithTransportCredentials(insecure.NewCredentials()))
@@ -60,9 +80,15 @@ func GetUserList(ctx *gin.Context) {
 
 	// 调用接口
 	userClient := proto.NewUserClient(conn)
+
+	pn := ctx.DefaultQuery("pn", "0")
+	pnInt, _ := strconv.Atoi(pn)
+	pSize := ctx.DefaultQuery("psize", "0")
+	pSizeInt, _ := strconv.Atoi(pSize)
+
 	rsp, err := userClient.GetUserList(ctx, &proto.PageInfo{
-		Pn:    1,
-		PSize: 10,
+		Pn:    uint32(pnInt),
+		PSize: uint32(pSizeInt),
 	})
 
 	if err != nil {
@@ -93,4 +119,21 @@ func GetUserList(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, result)
+}
+
+func removeTopStruct(fileds map[string]string) map[string]string {
+	rsp := map[string]string{}
+	for field, err := range fileds {
+		rsp[field[strings.Index(field, ".")+1:]] = err
+	}
+	return rsp
+}
+
+func PassWordLogin(ctx *gin.Context) {
+	// 表单验证
+	passWordLoginForm := forms.PassWordLoginForm{}
+	if err := ctx.ShouldBind(&passWordLoginForm); err != nil {
+		//如何返回错误信息
+		HandleValidatorError(ctx, err)
+	}
 }

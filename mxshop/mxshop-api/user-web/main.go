@@ -17,6 +17,12 @@ func main() {
 	//3.初始化routers
 	Router := initialize.Routers()
 
+	//4.初始化翻译
+	err := initialize.InitTrans("zh")
+	if err != nil {
+		return
+	}
+
 	/*
 		1.S()可以获取一个全局的sugar，可以自己设置一个全局的logger
 		2.日志是分级别的，debug，info，warn，error，panic，fatal
