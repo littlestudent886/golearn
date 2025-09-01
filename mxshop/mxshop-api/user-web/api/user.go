@@ -2,12 +2,15 @@ package api
 
 import (
 	"fmt"
+	"github.com/dgrijalva/jwt-go"
 	"github.com/go-playground/validator/v10"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 	"user-web/forms"
+	middlewares "user-web/midddlewares"
+	"user-web/models"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -135,5 +138,80 @@ func PassWordLogin(ctx *gin.Context) {
 	if err := ctx.ShouldBind(&passWordLoginForm); err != nil {
 		//如何返回错误信息
 		HandleValidatorError(ctx, err)
+		return
 	}
+	ip := global.ServerConfig.UserSrvInfo.Host
+	port := global.ServerConfig.UserSrvInfo.Port
+
+	// 连接用户grpc服务
+	conn, err := grpc.NewClient(fmt.Sprintf("%s:%d", ip, port), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		zap.S().Errorw("[GetUserList]连接用户服务失败",
+			"msg", err.Error(),
+		)
+	}
+	// 调用接口
+	userClient := proto.NewUserClient(conn)
+
+	if rsp, err := userClient.GetUserByMobile(ctx, &proto.MobileRequest{
+		Mobile: passWordLoginForm.Mobile,
+	}); err != nil {
+		if s, ok := status.FromError(err); ok {
+			switch s.Code() {
+			case codes.NotFound:
+				ctx.JSON(http.StatusBadRequest, gin.H{
+					"msg": "用户不存在",
+				})
+			default:
+				ctx.JSON(http.StatusInternalServerError, gin.H{
+					"msg": "登陆失败",
+				})
+			}
+			return
+		}
+	} else {
+		// 只是查询到了用户，没有检查密码
+		if checkResponse, err := userClient.CheckPassword(ctx, &proto.PasswordCheckInfo{
+			Password:          passWordLoginForm.PassWord,
+			EncryptedPassword: rsp.Password,
+		}); err != nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{
+				"password": "登陆失败",
+			})
+		} else {
+			if checkResponse.Success {
+				// 生成token
+				j := middlewares.NewJWT()
+				claims := models.CustomClaims{
+					ID:          uint(rsp.Id),
+					NickName:    rsp.NickName,
+					AuthorityId: uint(rsp.Role),
+					StandardClaims: jwt.StandardClaims{
+						NotBefore: time.Now().Unix(),               //签名的生效时间
+						ExpiresAt: time.Now().Unix() + 60*60*24*30, //30天过期
+						Issuer:    "zzc",
+					},
+				}
+				token, err := j.CreateToken(claims)
+				if err != nil {
+					ctx.JSON(http.StatusInternalServerError, gin.H{
+						"msg": "生成token失败",
+					})
+					return
+				}
+
+				ctx.JSON(http.StatusOK, gin.H{
+					"id":        rsp.Id,
+					"nick_name": rsp.NickName,
+					"token":     token,
+					"expire_at": (time.Now().Unix() + 60*60*24*30) * 1000,
+				})
+			} else {
+				ctx.JSON(http.StatusBadRequest, gin.H{
+					"password": "登陆失败",
+				})
+			}
+		}
+	}
+
 }

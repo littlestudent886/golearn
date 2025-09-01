@@ -46,6 +46,5 @@ func InitTrans(locale string) (err error) {
 		}
 		return
 	}
-
 	return
 }
