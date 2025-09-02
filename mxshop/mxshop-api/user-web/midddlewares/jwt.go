@@ -26,13 +26,11 @@ func JWTAuth() gin.HandlerFunc {
 		claims, err := j.ParseToken(token)
 		if err != nil {
 			if err == TokenExpired {
-				if err == TokenExpired {
-					c.JSON(http.StatusUnauthorized, map[string]string{
-						"msg": "授权已过期",
-					})
-					c.Abort()
-					return
-				}
+				c.JSON(http.StatusUnauthorized, map[string]string{
+					"msg": "授权已过期",
+				})
+				c.Abort()
+				return
 			}
 
 			c.JSON(http.StatusUnauthorized, "未登陆")

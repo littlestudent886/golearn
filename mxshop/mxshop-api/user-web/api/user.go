@@ -81,6 +81,10 @@ func GetUserList(ctx *gin.Context) {
 		)
 	}
 
+	claims, _ := ctx.Get("claims")
+	currentUser := claims.(*models.CustomClaims)
+	zap.S().Infof("访问用户:%d", currentUser.ID)
+
 	// 调用接口
 	userClient := proto.NewUserClient(conn)
 
