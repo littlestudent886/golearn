@@ -1,9 +1,11 @@
 package api
 
 import (
+	"context"
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/go-playground/validator/v10"
+	"github.com/go-redis/redis/v8"
 	"net/http"
 	"strconv"
 	"strings"
@@ -144,6 +146,14 @@ func PassWordLogin(ctx *gin.Context) {
 		HandleValidatorError(ctx, err)
 		return
 	}
+
+	if !store.Verify(passWordLoginForm.CaptchaId, passWordLoginForm.Captcha, true) {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"captcha": "验证码错误",
+		})
+		return
+	}
+
 	ip := global.ServerConfig.UserSrvInfo.Host
 	port := global.ServerConfig.UserSrvInfo.Port
 
@@ -217,5 +227,82 @@ func PassWordLogin(ctx *gin.Context) {
 			}
 		}
 	}
+
+}
+
+func Register(ctx *gin.Context) {
+	// 用户注册
+	registerForm := forms.RegisterForm{}
+	if err := ctx.ShouldBind(&registerForm); err != nil {
+		HandleValidatorError(ctx, err)
+		return
+	}
+
+	//验证码
+	rdb := redis.NewClient(&redis.Options{
+		Addr: fmt.Sprintf("%s:%d", global.ServerConfig.RedisInfo.Host, global.ServerConfig.RedisInfo.Port),
+	})
+	value, err := rdb.Get(context.Background(), registerForm.Mobile).Result()
+	if err == redis.Nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"code": "验证码错误",
+		})
+		return
+	} else {
+		if value != registerForm.Code {
+			ctx.JSON(http.StatusBadRequest, gin.H{
+				"code": "验证码错误",
+			})
+			return
+		}
+	}
+
+	ip := global.ServerConfig.UserSrvInfo.Host
+	port := global.ServerConfig.UserSrvInfo.Port
+
+	// 连接用户grpc服务
+	conn, err := grpc.NewClient(fmt.Sprintf("%s:%d", ip, port), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		zap.S().Errorw("[GetUserList]连接用户服务失败",
+			"msg", err.Error(),
+		)
+	}
+	// 调用接口
+	userClient := proto.NewUserClient(conn)
+	user, err := userClient.CreateUser(context.Background(), &proto.CreateUserInfo{
+		NickName: registerForm.Mobile,
+		Password: registerForm.PassWord,
+		Mobile:   registerForm.Mobile,
+	})
+	if err != nil {
+		zap.S().Errorf("创建用户失败: %s", err.Error())
+		HandleGrpcErrorToHttp(err, ctx)
+		return
+	}
+	j := middlewares.NewJWT()
+	claims := models.CustomClaims{
+		ID:          uint(user.Id),
+		NickName:    user.NickName,
+		AuthorityId: uint(user.Role),
+		StandardClaims: jwt.StandardClaims{
+			NotBefore: time.Now().Unix(),               //签名的生效时间
+			ExpiresAt: time.Now().Unix() + 60*60*24*30, //30天过期
+			Issuer:    "zzc",
+		},
+	}
+	token, err := j.CreateToken(claims)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"msg": "生成token失败",
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"id":        user.Id,
+		"nick_name": user.NickName,
+		"token":     token,
+		"expire_at": (time.Now().Unix() + 60*60*24*30) * 1000,
+	})
 
 }
