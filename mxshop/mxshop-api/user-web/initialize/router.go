@@ -7,6 +7,13 @@ import (
 
 func Routers() *gin.Engine {
 	Router := gin.Default()
+
+	Router.GET("/health", func(context *gin.Context) {
+		context.JSON(200, gin.H{
+			"code": 200,
+		})
+	})
+
 	//Router.Use(middlewares.Cors())
 	ApiGroup := Router.Group("/u/v1")
 	// 用户路由
