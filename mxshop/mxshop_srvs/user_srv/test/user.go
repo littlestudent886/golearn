@@ -47,7 +47,7 @@ func TestCreateuser() {
 	for i := 0; i < 10; i++ {
 		userInfoRsp, err := userClient.CreateUser(context.Background(), &proto.CreateUserInfo{
 			NickName: fmt.Sprintf("zzc%d", i),
-			Mobile:   fmt.Sprintf("1882568975%d", i),
+			Mobile:   fmt.Sprintf("1382568975%d", i),
 			Password: "admin123",
 		})
 		if err != nil {
@@ -60,6 +60,6 @@ func TestCreateuser() {
 func main() {
 	Init()
 	defer conn.Close()
-	//TestGetUserList()
-	TestCreateuser()
+	TestGetUserList()
+	//TestCreateuser()
 }

@@ -1,5 +1,23 @@
 name: 'user-web'
 port: 9021
+
 user_srv:
   host: '127.0.0.1'
   port: 50051
+  name: 'user-srv'
+
+jwt:
+  key: 'zzc12345A!'
+
+sms:
+  key: 'oioi'
+  secret: 'hahaha'
+
+redis:
+  host: '127.0.0.1'
+  port: 6380
+  expire: 300
+
+consul:
+  host: '127.0.0.1'
+  port: 8501
