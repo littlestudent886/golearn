@@ -2,15 +2,31 @@ package initialize
 
 import (
 	"fmt"
+
 	"github.com/hashicorp/consul/api"
+	_ "github.com/mbobakov/grpc-consul-resolver" // It's important
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+
 	"user-web/global"
 	"user-web/proto"
 )
 
 func InitSrvConn() {
+	conn, err := grpc.NewClient(
+		fmt.Sprintf("consul://%s:%d/%s?wait=14s", global.ServerConfig.ConsulInfo.Host, global.ServerConfig.ConsulInfo.Port, global.ServerConfig.UserSrvInfo.Name),
+		//"consul://10.233.4.60:8501/user-srv?wait=14s&tag=zzc",
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithDefaultServiceConfig(`{"loadBalancingPolicy": "round_robin"}`),
+	)
+	if err != nil {
+		zap.S().Fatal("[InitSrvConn] 连接 【用户服务失败】")
+	}
+	userSrvClient := proto.NewUserClient(conn)
+	global.UserSrvClient = userSrvClient
+}
+func InitSrvConn2() {
 	cfg := api.DefaultConfig()
 	cfg.Address = fmt.Sprintf("%s:%d", global.ServerConfig.ConsulInfo.Host, global.ServerConfig.ConsulInfo.Port)
 
@@ -21,7 +37,7 @@ func InitSrvConn() {
 	if err != nil {
 		panic(err)
 	}
-	services, err := client.Agent().ServicesWithFilter(`Service=="user-srv"`)
+	services, err := client.Agent().ServicesWithFilter(fmt.Sprintf(`Service=="%s"`, global.ServerConfig.UserSrvInfo.Name))
 	if err != nil {
 		panic(err)
 	}

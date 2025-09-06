@@ -3,20 +3,28 @@ package main
 import (
 	"flag"
 	"fmt"
+	"net"
+	"os"
+	"os/signal"
+	"syscall"
+
 	"github.com/hashicorp/consul/api"
+	"github.com/satori/go.uuid"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health"
 	"google.golang.org/grpc/health/grpc_health_v1"
+
 	"mxshop_srvs/user_srv/global"
 	"mxshop_srvs/user_srv/handler"
 	"mxshop_srvs/user_srv/initialize"
 	"mxshop_srvs/user_srv/proto"
-	"net"
+	"mxshop_srvs/user_srv/utils"
 )
 
 func main() {
 	IP := flag.String("ip", "10.233.4.60", "ip地址")
-	Port := flag.Int("port", 50051, "端口号")
+	Port := flag.Int("port", 0, "端口号")
 
 	//初始化
 	initialize.InitLogger()
@@ -24,8 +32,11 @@ func main() {
 	initialize.InitDB()
 
 	flag.Parse()
-	fmt.Println("ip:", *IP)
-	fmt.Println("port:", *Port)
+	zap.S().Infof("ip:", *IP)
+	if *Port == 0 {
+		*Port, _ = utils.GetFreePort()
+	}
+	zap.S().Infof("port:", *Port)
 
 	server := grpc.NewServer()
 	proto.RegisterUserServer(server, &handler.UserServer{})
@@ -49,27 +60,40 @@ func main() {
 	// 生成注册对象
 	registration := new(api.AgentServiceRegistration)
 	registration.Name = global.ServerConfig.Name
-	registration.ID = global.ServerConfig.Name
+	serviceId := fmt.Sprintf("%s", uuid.NewV4())
+	registration.ID = global.ServerConfig.Name + serviceId
 	registration.Address = "10.233.4.60"
-	registration.Port = 50051
+	registration.Port = *Port
 	registration.Tags = []string{"imooc", "zzc"}
 
 	// 生成对应的检查对象
 	check := &api.AgentServiceCheck{
-		GRPC:                           fmt.Sprintf("10.233.4.60:50051"),
+		GRPC:                           fmt.Sprintf("10.233.4.60:%d", *Port),
 		Interval:                       "5s",
 		Timeout:                        "3s",
 		DeregisterCriticalServiceAfter: "10s",
 	}
 	registration.Check = check
+	// 启动两个服务
+	// 注册到consul不被覆盖
 	err = client.Agent().ServiceRegister(registration)
 	if err != nil {
 		panic(err)
 	}
 
-	err = server.Serve(lis)
-	if err != nil {
-		panic("failed to start grpc:" + err.Error())
-	}
+	go func() {
+		err = server.Serve(lis)
+		if err != nil {
+			panic("failed to start grpc:" + err.Error())
+		}
+	}()
 
+	//接受终止信号
+	quit := make(chan os.Signal)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+	if err = client.Agent().ServiceDeregister(serviceId); err != nil {
+		zap.S().Info("[Consul]注销服务失败")
+	}
+	zap.S().Info("[Consul]注销服务成功")
 }

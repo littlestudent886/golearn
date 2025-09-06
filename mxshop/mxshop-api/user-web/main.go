@@ -5,9 +5,11 @@ import (
 	"github.com/gin-gonic/gin/binding"
 	ut "github.com/go-playground/universal-translator"
 	"github.com/go-playground/validator/v10"
+	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"user-web/global"
 	"user-web/initialize"
+	"user-web/utils"
 
 	myvalidator "user-web/validator"
 )
@@ -31,6 +33,17 @@ func main() {
 	//5.初始化Srv连接
 	initialize.InitSrvConn()
 
+	viper.AutomaticEnv()
+	// 如果是本地开发环境端口号固定，线上环境获取随机端口号
+	debug := viper.GetBool("MXSHOP_DEBUG")
+	zap.S().Info(debug)
+	if !debug {
+		port, err := utils.GetFreePort()
+		if err != nil {
+			return
+		}
+		global.ServerConfig.Port = port
+	}
 	// 注册验证器
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
 		_ = v.RegisterValidation("mobile", myvalidator.ValidateMobile)
