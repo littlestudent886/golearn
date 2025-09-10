@@ -1,12 +1,21 @@
-name: 'user-srv'
+#name: 'user-srv'
+#
+#mysql:
+#  host: '127.0.0.1'
+#  port: 3307
+#  user: 'root'
+#  password: '1234'
+#  db: 'mxshop_user_srv'
+#
+#consul:
+#  host: '127.0.0.1'
+#  port: 8501
 
-mysql:
-  host: '127.0.0.1'
-  port: 3307
-  user: 'root'
-  password: '1234'
-  db: 'mxshop_user_srv'
 
-consul:
-  host: '127.0.0.1'
-  port: 8501
+host: '127.0.0.1'
+port: 8850
+namespace: '65df860f-1177-4195-9dc4-f916d0a63360'
+user: 'nacos'
+password: 'nacos'
+dataid: 'user-srv.json'
+group: 'dev'

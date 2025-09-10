@@ -1,23 +1,31 @@
-name: 'user-web'
-port: 9021
+#name: 'user-web'
+#port: 9021
 
-user_srv:
-  host: '127.0.0.1'
-  port: 50051
-  name: 'user-srv'
+host: '127.0.0.1'
+port: 8850
+namespace: '65df860f-1177-4195-9dc4-f916d0a63360'
+user: 'nacos'
+password: 'nacos'
+dataid: 'user-web.json'
+group: 'dev'
 
-jwt:
-  key: 'zzc12345A!'
-
-sms:
-  key: 'oioi'
-  secret: 'hahaha'
-
-redis:
-  host: '127.0.0.1'
-  port: 6380
-  expire: 300
-
-consul:
-  host: '127.0.0.1'
-  port: 8501
+#user_srv:
+#  host: '127.0.0.1'
+#  port: 50051
+#  name: 'user-srv'
+#
+#jwt:
+#  key: 'zzc12345A!'
+#
+#sms:
+#  key: 'oioi'
+#  secret: 'hahaha'
+#
+#redis:
+#  host: '127.0.0.1'
+#  port: 6380
+#  expire: 300
+#
+#consul:
+#  host: '127.0.0.1'
+#  port: 8501

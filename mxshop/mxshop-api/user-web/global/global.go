@@ -13,4 +13,6 @@ var (
 	Trans ut.Translator
 	//用户server服务client
 	UserSrvClient proto.UserClient
+	//nacos服务配置
+	NacosConfig *config.NacosConfig = &config.NacosConfig{}
 )

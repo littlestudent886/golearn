@@ -7,7 +7,7 @@ type UserSrvConfig struct {
 }
 
 type JWTConfig struct {
-	SigningKey string `mapstructure:"key"`
+	SigningKey string `mapstructure:"key" json:"key"`
 }
 
 type AliSmsConfig struct {
@@ -34,4 +34,14 @@ type ServerConfig struct {
 	AliSmsInfo  AliSmsConfig  `mapstructure:"sms" json:"sms"`
 	RedisInfo   RedisConfig   `mapstructure:"redis" json:"redis"`
 	ConsulInfo  ConsulConfig  `mapstructure:"consul" json:"consul"`
+}
+
+type NacosConfig struct {
+	Host      string `mapstructure:"host" json:"host"`
+	Port      uint64 `mapstructure:"port" json:"port"`
+	NameSpace string `mapstructure:"namespace" json:"namespace"`
+	User      string `mapstructure:"user" json:"user"`
+	Password  string `mapstructure:"password" json:"password"`
+	DataId    string `mapstructure:"dataid" json:"dataid"`
+	Group     string `mapstructure:"group" json:"group"`
 }
