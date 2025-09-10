@@ -9,7 +9,7 @@ import (
 	"github.com/nacos-group/nacos-sdk-go/vo"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
-	"mxshop_srvs/user_srv/global"
+	"mxshop_srvs/goods_srv/global"
 )
 
 func GetEnvInfo(env string) bool {
@@ -22,9 +22,9 @@ func InitConfig() {
 	//从配置文件中读取出对应的配置
 	debug := GetEnvInfo("MXSHOP_DEBUG")
 	configFilePrefix := "config"
-	configFileName := fmt.Sprintf("user_srv/%s-pro.yaml", configFilePrefix)
+	configFileName := fmt.Sprintf("goods_srv/%s-pro.yaml", configFilePrefix)
 	if debug {
-		configFileName = fmt.Sprintf("user_srv/%s-debug.yaml", configFilePrefix)
+		configFileName = fmt.Sprintf("goods_srv/%s-debug.yaml", configFilePrefix)
 	}
 
 	v := viper.New()
@@ -50,8 +50,8 @@ func InitConfig() {
 		NamespaceId:         global.NacosConfig.NameSpace, //we can create multiple clients with different namespaceId to support multiple namespace.When namespace is public, fill in the blank string here.
 		TimeoutMs:           5000,
 		NotLoadCacheAtStart: true,
-		LogDir:              "user_srv/tmp/nacos/log",
-		CacheDir:            "user_srv/tmp/nacos/cache",
+		LogDir:              "goods_srv/tmp/nacos/log",
+		CacheDir:            "goods_srv/tmp/nacos/cache",
 		LogLevel:            "debug",
 		Username:            global.NacosConfig.User,     // 添加用户名
 		Password:            global.NacosConfig.Password, // 添加密码
