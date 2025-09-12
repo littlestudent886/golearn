@@ -24,5 +24,5 @@ type BaseModel struct {
 	CreatedAt time.Time `gorm:"column:add_time"`
 	UpdatedAt time.Time `gorm:"column:update_time"`
 	DeletedAt gorm.DeletedAt
-	IsDelete  bool
+	IsDeleted bool
 }

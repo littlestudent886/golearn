@@ -24,7 +24,7 @@ import (
 
 func main() {
 	IP := flag.String("ip", "10.233.4.60", "ip地址")
-	Port := flag.Int("port", 0, "端口号")
+	Port := flag.Int("port", 50052, "端口号")
 
 	//初始化
 	initialize.InitLogger()
@@ -39,7 +39,7 @@ func main() {
 	zap.S().Infof("port:", *Port)
 
 	server := grpc.NewServer()
-	proto.RegisterUserServer(server, &handler.UserServer{})
+	proto.RegisterGoodsServer(server, &handler.GoodsServer{})
 	lis, err := net.Listen("tcp", fmt.Sprintf("%s:%d", *IP, *Port))
 	if err != nil {
 		panic("failed to listen:" + err.Error())
@@ -62,13 +62,13 @@ func main() {
 	registration.Name = global.ServerConfig.Name
 	serviceId := fmt.Sprintf("%s", uuid.NewV4())
 	registration.ID = global.ServerConfig.Name + serviceId
-	registration.Address = "10.233.4.60"
+	registration.Address = global.ServerConfig.Host
 	registration.Port = *Port
-	registration.Tags = []string{"imooc", "zzc"}
+	registration.Tags = global.ServerConfig.Tags
 
 	// 生成对应的检查对象
 	check := &api.AgentServiceCheck{
-		GRPC:                           fmt.Sprintf("10.233.4.60:%d", *Port),
+		GRPC:                           fmt.Sprintf("%s:%d", global.ServerConfig.Host, *Port),
 		Interval:                       "5s",
 		Timeout:                        "3s",
 		DeregisterCriticalServiceAfter: "10s",
